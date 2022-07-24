@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <title>Web Push | Grupovina</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    html {
+      background: linear-gradient(45deg, #040d2c,#462a8b,#c505d6);
+      font-family: Verdana, Geneva, sans-serif;
+      color: white;
+    }
+    * {
+      box-sizing: border-box;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .root {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo {
+      margin-bottom: 32px;
+      filter: grayscale(1);
+      width: 212px;
+      height: 75px;
+    }
+    .send-btn {
+      cursor: pointer;
+      border: 1px solid #eac1c154;
+      padding: 10px;
+      border-radius: 5px;
+      background-color: #ffffff0a;
+      transition: .3s ease-in-out border;
+      user-select: none;
+    }
+    .send-btn:hover {
+      border: 1px solid #c505d6;
+    }
+  </style>
+</head>
+<body>
+  <div class="root">
+    <img src="/logo.webp" alt="Logo" class="logo">
+    <div class="send-btn">Send messages</div>
+  </div>
+  <script>
+    // filled in from the controller
+    const publicKey = "{{ publicKey }}"
+
+    // copy paste from the Internet. you can search for a library, but I didn't see the point
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4)
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/')
+      const rawData = window.atob(base64)
+      return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)))
+    }
+
+    // an easy way to do something asynchronously from a common thread
+    async function init() {
+
+      // check browser support
+      if (!'serviceWorker' in navigator || !'PushManager' in window) { console.error('Service worker or push manager does not supported by browser'); return }
+
+      // browser supports the function, we register the worker
+      const registration = await navigator.serviceWorker.register('/worker.js', { scope: '/' })
+
+      // we register a subscriber to the message. I recommend doing this when user logging into personal account, along with sending personal data
+      const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) })
+      await fetch('/subscribe', { method: 'POST', body: JSON.stringify(subscription), headers: { 'content-type': 'application/json' }})
+    }
+
+    const sendBtn = document.querySelector('.send-btn')
+    sendBtn.addEventListener('click', function() {
+      fetch('/global', { method: 'POST', headers: { 'content-type': 'application/json' }})
+    })
+
+    init()
+  </script>
+</body>
+</html>
